@@ -22,11 +22,11 @@ class SQLStageEvent;
  * @brief 
  * @ingroup Executor
  */
-class AlterTableExecutor
+class AlterExecutor
 {
 public:
-  AlterTableExecutor()         = default;
-  virtual ~AlterTableExecutor() = default;
+  AlterExecutor()         = default;
+  virtual ~AlterExecutor() = default;
 
   RC execute(SQLStageEvent *sql_event);
 };

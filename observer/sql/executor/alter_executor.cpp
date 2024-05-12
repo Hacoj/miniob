@@ -1,4 +1,3 @@
-#include "alter_table_executor.h"
 /* Copyright (c) 2021 OceanBase and/or its affiliates. All rights reserved.
 miniob is licensed under Mulan PSL v2.
 You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -13,13 +12,13 @@ See the Mulan PSL v2 for more details. */
 // Created by Hacoj on 2024/5/9.
 //
 
-#include "alter_table_executor.h"
+#include "alter_executor.h"
 
 #include "common/log/log.h"
 #include "event/session_event.h"
 #include "event/sql_event.h"
 #include "session/session.h"
-#include "sql/stmt/alter_table_stmt.h"
+#include "sql/stmt/alter_stmt.h"
 #include "storage/db/db.h"
 
 /**
@@ -32,27 +31,34 @@ See the Mulan PSL v2 for more details. */
  * @param sql_event 指向SQL阶段事件的指针，包含了执行表更改操作所需的会话信息和语句。
  * @return 返回操作的结果状态码，RC（Result Code）。
  */
-RC AlterTableExecutor::execute(SQLStageEvent *sql_event) { 
+RC AlterExecutor::execute(SQLStageEvent *sql_event) { 
   // 获取当前会话
   Session *session = sql_event->session_event()->session();
+  Stmt    *stmt    = sql_event->stmt();
 
   // 断言：确保执行的是ALTER TABLE语句
-  ASSERT(stmt->type() == StmtType::ALTER_TABLE, 
+  ASSERT(stmt->type() == StmtType::ALTER, 
         "alter table executor can not run this command: %d",
         static_cast<int>(stmt->type()));
 
+  RC rc = RC::SUCCESS;
+
   // 静态类型转换，获取ALTER TABLE语句对象
-  ALterTableStmt *alter_table_stmt = static_cast<AlterTableStmt *>(stmt);
+  AlterStmt *alter_stmt = static_cast<AlterStmt*>(stmt);
 
-  // 获取要更改的表名
-  const char *table_name = alter_table_stmt->table_name().c_str();
-  const char *table_abbr = alter_table_stmt->table_abbr().c_str();
+  // 获取要更改的信息
+  std::string name = alter_stmt-> relation_name();
+  std::vector<AttrInfoSqlNode> attr_infos_ = alter_stmt -> attr_infos();
+
   // 执行表更改操作
-  RC          rc         = session->get_current_db()->alter_table(table_name, );
-
-  // 记录成功更改表的日志
-  LOG_INFO("drop table %s success", table_name);
+  for (AttrInfoSqlNode attr : attr_infos_) {
+    rc = session->get_current_db()
+                    ->alter_table(alter_stmt->relation_name().c_str(),
+                                  alter_stmt->object_().c_str(),
+                                  alter_stmt->operation().c_str(),
+                                  &attr);
+  }
 
   // 返回操作结果状态码
-  return session->get_current_db()->alter_table(table_name, table_abbr);
+  return rc;
 }

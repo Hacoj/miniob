@@ -79,6 +79,8 @@ public:
 
   RC recover_insert_record(Record &record);
 
+
+  RC set_table_mete(TableMeta new_table_meta);
   // TODO refactor
   RC create_index(Trx *trx, const FieldMeta *field_meta, const char *index_name);
 
@@ -93,6 +95,8 @@ public:
   const TableMeta &table_meta() const;
 
   RC sync();
+
+  RC destroy();
 
 private:
   RC insert_entry_of_indexes(const char *record, const RID &rid);

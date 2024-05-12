@@ -36,6 +36,7 @@ public:
   DropTableStmt(const std::string &table_name)
       : table_name_(table_name) {}
 
+
   /**
    * @brief 虚拟析构函数
    */

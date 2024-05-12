@@ -12,6 +12,11 @@ See the Mulan PSL v2 for more details. */
 // Created by Hacoj on 2024/4/25.
 //
 
-#include "alter_table_stmt.h"
+#include "alter_stmt.h"
 
-class ALterTableStmt
+RC AlterStmt::create(Db *db, const AlterSqlNode &alter, Stmt *&stmt) {
+  
+  stmt = new AlterStmt(alter.relation_name, alter.operation, alter.object_, alter.attr_infos);
+
+  return RC::SUCCESS; 
+}

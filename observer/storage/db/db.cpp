@@ -25,6 +25,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/meta_util.h"
 #include "storage/table/table.h"
 #include "storage/table/table_meta.h"
+#include "storage/record/record.h"
 #include "storage/trx/trx.h"
 #include "db.h"
 
@@ -116,15 +117,15 @@ RC Db::drop_table(const char *table_name) {
   RC rc = RC::SUCCESS;
 
   // 检查表是否正在被使用
-  if (opened_tables_.count(table_name) != 0) {
-    LOG_WARN("%s is using.", table_name);
-    return RC::SCHEMA_TABLE_NOT_EXIST;
-  }
+  // if (opened_tables_.count(table_name) != 0) {
+  //   LOG_WARN("%s is using.", table_name);
+  //   return RC::SCHEMA_TABLE_NOT_EXIST;
+  // }
 
   // 构造表的文件路径
   std::string table_file_path = table_meta_file(path_.c_str(), table_name);
   // 尝试找到对应的表
-  Table       *table           = this->find_table()
+  Table       *table           = this->find_table(table_name);
 
   // 如果未能找到表，记录错误并返回
   if (table == nullptr) {
@@ -132,75 +133,61 @@ RC Db::drop_table(const char *table_name) {
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
+  opened_tables_.erase(table_name);
+  table->destroy();
+
   // 删除找到的表
   delete table;
 
   return rc;
 }
 
-
-RC Db::alter_table(const char *table_name, const AlterTableSqlNode *alter_table_node) {
-  if (opened_tables_.count(table_name) == 0){
+RC Db::alter_table(const char *table_name, const char *operation,
+     const char *object_, const AttrInfoSqlNode *attributes) { 
+  if (opened_tables_.count(table_name) == 0) {
     LOG_WARN("%s does not exist.", table_name);
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
-  Table *table              = opened_tables_.find(table_name);  
-  TableMeta *table_meta         = table->table_meta;
-  vector<FieldMeta> *field_metas = table_meta->field_metas;
+  Table *table = opened_tables_[table_name]; 
+  const TableMeta &table_meta = table->table_meta();
 
-  vector<FieldMeta> *new_field_metas = new vector<FieldMeta>();
+  std::vector<FieldMeta> field(*(table_meta.field_metas()));
 
-  // 将原始字段元数据复制到新字段元数据向量
-  for (size_t i = 0; i < field_metas->size(); i++){
-    new_field_metas->push_back(field_metas->at(i));
-  }
+  if (std::string(object_) == "COLUMN"){
+    if (std::string(operation) == "ADD") {
 
-  std::vector<AttrInfoSqlNode> attr_info = alter_table_node->attr_infos;
-  std::vector<std::string>     operation = alter_table_node->operations;
+      FieldMeta field_mata = FieldMeta(
+        attributes->name.c_str(),
+        attributes->type,
+        0,
+        attributes->length,
+        true
+      );
 
-  if (operation.size() != attr_info.size()) {
-    LOG_ERROR("Invalid alter table operation.");
-    return RC::INVALID_ARGUMENT;
-  }
-
-  for (int i = 0; i < operation.size(); i++) {
-    std::string operation_type = operation[i];
-    switch (operation_type)
-    {
-    case "ADD":
-      // 增加字段
-      new_field_metas->push_back(FieldMeta(attr_info[i].name, attr_info[i].type, attr_info[i].length));
-      break;
-    case "DROP":
-      // 删除字段
-      for (int j = 0; j < field_metas->size(); j++) {
-        if (field_metas->at(j).name == attr_info[i].name) {
-          new_field_metas->erase(new_field_metas->begin() + j);  // 使用erase并传入迭代器来删除元素
-          break;
-        }
-      }
-      return RC::SCHEMA_FIELD_MISSING;  // 如果找不到要删除的字段，返回错误
-    default:
-      break;
+      field.push_back((field_mata));
     }
   }
 
-  // 创建新的表对象
-  // Table *new_table = new Table();
+  AttrInfoSqlNode *attrs = new AttrInfoSqlNode[field.size()];
 
-  // // 暂未实现复制原表文件的部分，可能需要读取旧表的数据并写入新表
-  // //RID rid(1,0);
-  // //new_table->get_record_scanner
-  // //new_table->insert_record
+  for (long unsigned int i = 0; i < field.size(); i++)
+  {
+    attrs[i] = *new AttrInfoSqlNode();
+    attrs[i].length = field.at(i).len();
+    attrs[i].name   = field.at(i).name();
+    attrs[i].type   = field.at(i).type();
+  }
+  
 
-  // // 更新打开的表集合和表元数据
-  // opened_tables_[table_name] = new_table;
-  // new_table->table_meta = new TableMeta(*table_meta);
-  // new_table->table_meta->field_metas = new_field_metas;
+  TableMeta *new_table_meta = new TableMeta();
+  new_table_meta->init(table_meta.table_id(),
+                       table_meta.name(),
+                       field.size(),
+                       attrs);
+  
+  table->set_table_mete(*new_table_meta);
 
-  // 丐版  TODO: 会有BUG，待修改
-  table->table_meta->field_metas = new_field_metas;
 
   return RC::SUCCESS;
 }

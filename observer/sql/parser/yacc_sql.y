@@ -91,6 +91,9 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         DATA
         INFILE
         EXPLAIN
+        ALTER
+        ADD
+        COLUMN
         EQ
         LT
         GT
@@ -162,6 +165,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <sql_node>            help_stmt
 %type <sql_node>            exit_stmt
 %type <sql_node>            command_wrapper
+%type <sql_node>            alter_stmt
 // commands should be a list but I use a single command instead
 %type <sql_node>            commands
 
@@ -198,18 +202,21 @@ command_wrapper:
   | set_variable_stmt
   | help_stmt
   | exit_stmt
+  | alter_stmt
     ;
 
 exit_stmt:      
     EXIT {
       (void)yynerrs;  // 这么写为了消除yynerrs未使用的告警。如果你有更好的方法欢迎提PR
       $$ = new ParsedSqlNode(SCF_EXIT);
-    };
+    }
+    ;
 
 help_stmt:
     HELP {
       $$ = new ParsedSqlNode(SCF_HELP);
-    };
+    }
+    ;
 
 sync_stmt:
     SYNC {
@@ -675,6 +682,31 @@ set_variable_stmt:
       delete $4;
     }
     ;
+
+alter_stmt:
+  ALTER TABLE ID ADD COLUMN LBRACE attr_def attr_def_list RBRACE
+  {
+    $$ = new ParsedSqlNode(SCF_ALTER);
+    AlterSqlNode &alter_sql_node = $$ -> alter;
+
+    std::vector<AttrInfoSqlNode> *attr_infos_ = $8;
+
+    alter_sql_node.relation_name = $3;
+    alter_sql_node.operation     = "ADD";
+    alter_sql_node.object_       = "COLUMN";
+
+    if (attr_infos_ != nullptr) {
+      alter_sql_node.attr_infos    = *attr_infos_;
+      delete attr_infos_;
+    }
+
+    alter_sql_node.attr_infos.emplace_back(*$7);
+    std::reverse(alter_sql_node.attr_infos.begin(), alter_sql_node.attr_infos.end());
+
+    delete $7;
+    free($3);
+  } 
+  ;
 
 opt_semicolon: /*empty*/
     | SEMICOLON

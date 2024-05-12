@@ -84,6 +84,7 @@ void SessionStage::handle_request2(SessionEvent *event)
  // 所以在这三个阶段的handle_request函数中，可以直接调用execute_stage的handle_request函数。
 RC SessionStage::handle_sql(SQLStageEvent *sql_event)
 {
+  LOG_DEBUG("------------------------");
   RC rc = query_cache_stage_.handle_request(sql_event);
   if (OB_FAIL(rc)) {
     LOG_TRACE("failed to do query cache. rc=%s", strrc(rc));

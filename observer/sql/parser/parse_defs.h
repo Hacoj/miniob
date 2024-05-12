@@ -171,7 +171,7 @@ struct AlterTableSqlNode
 {
   std::string                  relation_name;  ///< Relation name
   std::vector<AttrInfoSqlNode> attr_infos;     ///< attributes
-  std::vector<std::string>     operations;       ///< 要修改的列名
+  std::vector<std::string>     operations;     ///< 要修改的列名
 };
 
 /**
@@ -264,6 +264,14 @@ struct ErrorSqlNode
   int         column;
 };
 
+struct AlterSqlNode
+{
+  std::string object_;
+  std::string relation_name;
+  std::string operation;
+  std::vector<AttrInfoSqlNode> attr_infos;
+};
+
 /**
  * @brief 表示一个SQL语句的类型
  * @ingroup SQLParser
@@ -277,7 +285,6 @@ enum SqlCommandFlag
   SCF_UPDATE,
   SCF_DELETE,
   SCF_CREATE_TABLE,
-  SCF_DROP_TABLE,
   SCF_CREATE_INDEX,
   SCF_DROP_INDEX,
   SCF_SYNC,
@@ -292,6 +299,8 @@ enum SqlCommandFlag
   SCF_EXIT,
   SCF_EXPLAIN,
   SCF_SET_VARIABLE,  ///< 设置变量
+  SCF_DROP_TABLE,
+  SCF_ALTER,
 };
 /**
  * @brief 表示一个SQL语句
@@ -315,6 +324,7 @@ public:
   LoadDataSqlNode     load_data;
   ExplainSqlNode      explain;
   SetVariableSqlNode  set_variable;
+  AlterSqlNode        alter;
 
 public:
   ParsedSqlNode();
