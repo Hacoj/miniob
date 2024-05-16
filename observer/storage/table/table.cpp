@@ -526,28 +526,28 @@ RC Table::sync()
 }
 
 RC Table::destroy() { 
-  const char *dir_ = this->base_dir_.c_str();
+  // const char *dir = this->base_dir_.c_str();
 
-  delete data_buffer_pool_;
-  delete record_handler_;
+  // delete data_buffer_pool_;
+  // delete record_handler_;
   
-  std::string path = table_meta_file(dir, name());
-  if(unlink(path.c_str()) != 0) {
-      LOG_ERROR("Failed to remove meta file=%s, errno=%d", path.c_str(), errno);
-      return RC();
-  }
+  // std::string path = table_meta_file(dir, name());
+  // if(unlink(path.c_str()) != 0) {
+  //     LOG_ERROR("Failed to remove meta file=%s, errno=%d", path.c_str(), errno);
+  //     return RC();
+  // }
 
-  std::string data_file = std::string(dir) + "/" + name() + TABLE_DATA_SUFFIX;
-  if(unlink(data_file.c_str()) != 0) { // 删除描述表元数据的文件
-      LOG_ERROR("Failed to remove data file=%s, errno=%d", data_file.c_str(), errno);
-      return RC();
-  }
+  // std::string data_file = std::string(dir) + "/" + name() + TABLE_DATA_SUFFIX;
+  // if(unlink(data_file.c_str()) != 0) { // 删除描述表元数据的文件
+  //     LOG_ERROR("Failed to remove data file=%s, errno=%d", data_file.c_str(), errno);
+  //     return RC();
+  // }
 
-  for (size_t i = 0; i < indexes_.size(); i++) {
-    delete indexes_.at(i);
-  }
+  // for (size_t i = 0; i < indexes_.size(); i++) {
+  //   delete indexes_.at(i);
+  // }
 
-  indexes_.clear();
+  // indexes_.clear();
 
   return RC::SUCCESS;  
 }
